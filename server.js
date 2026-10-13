@@ -14,6 +14,14 @@ app.post('/api/extract-workout', extractWorkout);
 app.get('/api/job-status/:id', getJobStatus);
 
 const PORT = process.env.PORT || 3000;
+
+app.get('/health', (req,res)=>{
+  res.send({
+    success: true,
+    health: 'ok',
+  })
+})
+
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
