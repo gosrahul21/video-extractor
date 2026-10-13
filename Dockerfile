@@ -1,5 +1,5 @@
-# Use the official Node.js image with active Debian Bookworm
-FROM node:20-bookworm-slim
+# Use Node.js 22 (LTS) for native WebSocket support required by @supabase/supabase-js
+FROM node:22-bookworm-slim
 
 # Prevent interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
