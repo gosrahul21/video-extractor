@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+cookies.txt
+*.pem
+*.key
+
+# Temporary Files & Video Downloads
+tmp/
+temp/
+scratch/
+*.mp4
+*.m4a
+*.webm
+*.mkv
+*.mp3
+*.part
+*.ytdl
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build & Coverage
+dist/
+build/
+coverage/
+.nyc_output/
+
+# Operating System
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+# IDE & Editor Files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
