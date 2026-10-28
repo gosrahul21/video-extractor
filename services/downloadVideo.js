@@ -33,7 +33,10 @@ export const downloadVideo = async (url, filePath) => {
     }
   }
 
-  const baseOptions = {};
+  const baseOptions = {
+    jsRuntimes: 'node',
+    remoteComponents: 'ejs:github'
+  };
 
   if (effectiveCookiesPath) {
     console.log('Using cookies for YouTube authentication...');
