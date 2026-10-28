@@ -2,8 +2,9 @@ import express from 'express';
 import dotenv from 'dotenv';
 import { extractWorkout, getJobStatus } from './controllers/workoutController.js';
 
-// Import the queue/worker so it starts listening when server boots
-import './queues/workoutQueue.js';
+// Import the BullMQ queue/worker (Commented out while using in-memory queue)
+// import './queues/workoutQueue.js';
+
 
 dotenv.config();
 

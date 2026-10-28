@@ -24,44 +24,14 @@ export const workoutWorker = new Worker(QUEUE_NAME, async (job) => {
   concurrency: 2 // Max 2 videos processing at the same time to save RAM/CPU
 });
 
-import { createClient } from '@supabase/supabase-js';
-import { Expo } from 'expo-server-sdk';
-import dotenv from 'dotenv';
-dotenv.config();
-
-const supabase = createClient(
-  process.env.EXPO_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL,
-  process.env.EXPO_PUBLIC_SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
-  { db: { schema: 'freakyfit' } }
-);
-const expo = new Expo();
+import { sendWorkoutPushNotification } from '../services/notificationService.js';
 
 workoutWorker.on('completed', async (job) => {
   console.log(`[Worker] Job ${job.id} completed successfully!`);
-  try {
-    const userId = job.data.user_id;
-    if (!userId) return;
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('push_token')
-      .eq('id', userId)
-      .single();
-
-    if (profile && profile.push_token && Expo.isExpoPushToken(profile.push_token)) {
-      await expo.sendPushNotificationsAsync([{
-        to: profile.push_token,
-        sound: 'default',
-        title: 'Workout Extracted!',
-        body: 'Your video has been successfully processed and added to your library.'
-      }]);
-      console.log(`[Worker] Push notification sent to ${userId}`);
-    }
-  } catch (err) {
-    console.error('[Worker] Push notification error:', err);
-  }
+  await sendWorkoutPushNotification(job.data?.user_id);
 });
 
 workoutWorker.on('failed', (job, err) => {
   console.error(`[Worker] Job ${job.id} failed:`, err);
 });
+
