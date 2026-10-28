@@ -35,16 +35,15 @@ export const downloadVideo = async (url, filePath) => {
 
   const baseOptions = {
     jsRuntimes: 'node',
-    remoteComponents: 'ejs:github'
+    remoteComponents: 'ejs:github',
+    extractorArgs: 'youtube:player_client=tv,web_embedded'
   };
 
   if (effectiveCookiesPath) {
     console.log('Using cookies for YouTube authentication...');
     baseOptions.cookies = effectiveCookiesPath;
-  } else {
-    // When unauthenticated, android client helps bypass the web bot-guard challenge
-    baseOptions.extractorArgs = 'youtube:player_client=android,web';
   }
+
 
 
   // 2. Fetch metadata to extract thumbnail
