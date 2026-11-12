@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { processWorkoutVideo } from '../services/workoutService.js';
 import { sendWorkoutPushNotification } from '../services/notificationService.js';
+import { classifyJobError } from '../utils/errorClassifier.js';
 
 // In-memory storage for jobs
 const jobs = new Map();
@@ -45,8 +46,10 @@ const processQueue = async () => {
       await sendWorkoutPushNotification(job.data.user_id);
     } catch (err) {
       console.error(`[InMemoryQueue] Job ${job.id} failed:`, err);
+      const classifiedError = classifyJobError(err);
       job.state = 'failed';
-      job.failedReason = err.message || String(err);
+      job.error = classifiedError;
+      job.failedReason = classifiedError.message;
       job.completedAt = Date.now();
     }
   }
@@ -67,6 +70,7 @@ export const inMemoryQueue = {
       state: 'waiting', // 'waiting' | 'active' | 'completed' | 'failed'
       result: null,
       failedReason: null,
+      error: null,
       createdAt: Date.now(),
       startedAt: null,
       completedAt: null

@@ -76,7 +76,8 @@ export const getJobStatus = async (req, res) => {
       job_id: id,
       state: job.state,       // 'waiting' | 'active' | 'completed' | 'failed'
       result: job.result, 
-      failedReason: job.failedReason 
+      failedReason: job.failedReason,
+      error: job.error
     });
   } catch (error) {
     console.error('Error fetching job status:', error);

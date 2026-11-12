@@ -15,6 +15,17 @@ if (!fs.existsSync(TMP_DIR)) {
   fs.mkdirSync(TMP_DIR, { recursive: true });
 }
 
+const runStage = async (stage, fn) => {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err && typeof err === 'object' && !err.stage) {
+      err.stage = stage;
+    }
+    throw err;
+  }
+};
+
 export const processWorkoutVideo = async (url, user_id) => {
   const filename = `${Date.now()}.mp4`;
   const filePath = path.join(TMP_DIR, filename);
@@ -22,16 +33,16 @@ export const processWorkoutVideo = async (url, user_id) => {
 
   try {
     // 1. Download
-    const thumbnailUrl = await downloadVideo(url, filePath);
+    const thumbnailUrl = await runStage('download', () => downloadVideo(url, filePath));
 
     // 2. Upload to Gemini
-    geminiFile = await uploadToGemini(filePath, filename);
+    geminiFile = await runStage('upload', () => uploadToGemini(filePath, filename));
 
     // 3. Extract Workout
-    const workoutData = await extractWorkoutWithGemini(geminiFile);
+    const workoutData = await runStage('extract', () => extractWorkoutWithGemini(geminiFile));
 
     // 4. Save to Database
-    const workout_id = await saveWorkoutToDb(user_id, url, workoutData, thumbnailUrl);
+    const workout_id = await runStage('save', () => saveWorkoutToDb(user_id, url, workoutData, thumbnailUrl));
 
     return { workout_id, workoutData };
   } finally {
