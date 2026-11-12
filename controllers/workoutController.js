@@ -36,8 +36,10 @@
 //   }
 // };
 
-// --- In-Memory Sequential Queue Implementation ---
+// --- In-Memory & Cloud Queue Controller ---
 import { inMemoryQueue } from '../queues/inMemoryQueue.js';
+import { sqsService } from '../services/sqsService.js';
+import { jobService } from '../services/jobService.js';
 
 export const extractWorkout = async (req, res) => {
   const { url, user_id } = req.body;
@@ -47,7 +49,19 @@ export const extractWorkout = async (req, res) => {
   }
 
   try {
-    // Add job to in-memory queue (processes one-by-one sequentially)
+    // 1. AWS Production Flow: SQS + Database Job Record
+    if (sqsService.isConfigured()) {
+      const job = await jobService.createJob({ url, user_id });
+      await sqsService.enqueueJob({ jobId: job.id, url, userId: user_id });
+
+      return res.status(202).json({
+        success: true,
+        job_id: job.id,
+        message: 'Video added to processing queue.'
+      });
+    }
+
+    // 2. Local Fallback Flow: In-Memory Queue
     const job = inMemoryQueue.addJob({ url, user_id });
 
     // Return job id immediately (same asynchronous API pattern)
@@ -57,7 +71,7 @@ export const extractWorkout = async (req, res) => {
       message: 'Video added to processing queue.' 
     });
   } catch (error) {
-    console.error('Error adding job to in-memory queue:', error);
+    console.error('Error adding job to queue:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -66,8 +80,24 @@ export const getJobStatus = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const job = inMemoryQueue.getJob(id);
+    // 1. AWS Production Flow: Read from Database
+    if (sqsService.isConfigured()) {
+      const job = await jobService.getJob(id);
+      if (!job) {
+        return res.status(404).json({ error: 'Job not found' });
+      }
 
+      return res.status(200).json({
+        job_id: job.id,
+        state: job.state,       // 'waiting' | 'active' | 'completed' | 'failed'
+        result: job.result,
+        failedReason: job.failed_reason,
+        error: job.error
+      });
+    }
+
+    // 2. Local Fallback Flow: In-Memory Queue
+    const job = inMemoryQueue.getJob(id);
     if (!job) {
       return res.status(404).json({ error: 'Job not found' });
     }

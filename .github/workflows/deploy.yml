@@ -1,0 +1,74 @@
+name: Deploy to AWS Lambda
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - feat/prod
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Build & Deploy Container to AWS Lambda
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, Tag, and Push Image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME || 'freakyfit-backend' }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "Building Docker container..."
+          docker build -f Dockerfile.lambda -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          
+          echo "Pushing Docker image to ECR..."
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      - name: Update Worker Lambda Function
+        if: env.WORKER_LAMBDA_NAME != ''
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME || 'freakyfit-backend' }}
+          IMAGE_TAG: ${{ github.sha }}
+          WORKER_LAMBDA_NAME: ${{ secrets.WORKER_LAMBDA_NAME || 'freakyfit-worker' }}
+        run: |
+          echo "Deploying to Worker Lambda: $WORKER_LAMBDA_NAME"
+          aws lambda update-function-code \
+            --function-name $WORKER_LAMBDA_NAME \
+            --image-uri $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            --publish
+          aws lambda wait function-updated --function-name $WORKER_LAMBDA_NAME
+
+      - name: Update API Lambda Function (Optional)
+        if: env.API_LAMBDA_NAME != ''
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME || 'freakyfit-backend' }}
+          IMAGE_TAG: ${{ github.sha }}
+          API_LAMBDA_NAME: ${{ secrets.API_LAMBDA_NAME }}
+        run: |
+          if [ -n "$API_LAMBDA_NAME" ]; then
+            echo "Deploying to API Lambda: $API_LAMBDA_NAME"
+            aws lambda update-function-code \
+              --function-name $API_LAMBDA_NAME \
+              --image-uri $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+              --publish
+            aws lambda wait function-updated --function-name $API_LAMBDA_NAME
+          fi

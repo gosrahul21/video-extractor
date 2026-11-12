@@ -1,4 +1,5 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { create } from 'youtube-dl-exec';
 import { fileURLToPath } from 'url';
@@ -9,6 +10,10 @@ dotenv.config();
 const ytDlp = create('yt-dlp');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const TMP_DIR = process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT
+  ? os.tmpdir()
+  : path.join(__dirname, '../tmp');
 
 /**
  * Encode a Netscape-format cookies string into a single-line base64 string
@@ -40,11 +45,10 @@ export const downloadVideo = async (url, filePath) => {
   // 1. Resolve cookies strictly from environment variable (YOUTUBE_COOKIES)
   let effectiveCookiesPath = null;
   if (process.env.YOUTUBE_COOKIES) {
-    const tmpDir = path.join(__dirname, '../tmp');
-    if (!fs.existsSync(tmpDir)) {
-      fs.mkdirSync(tmpDir, { recursive: true });
+    if (!fs.existsSync(TMP_DIR)) {
+      fs.mkdirSync(TMP_DIR, { recursive: true });
     }
-    const envCookiesPath = path.join(tmpDir, 'env_cookies.txt');
+    const envCookiesPath = path.join(TMP_DIR, 'env_cookies.txt');
     try {
       const rawCookies = process.env.YOUTUBE_COOKIES.trim();
       const content = (rawCookies.startsWith('# Netscape') || rawCookies.includes('\t'))

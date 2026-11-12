@@ -1,4 +1,5 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { downloadVideo } from './downloadVideo.js';
@@ -10,7 +11,11 @@ import { cleanupFiles } from './cleanupFiles.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const TMP_DIR = path.join(__dirname, '../tmp');
+// In AWS Lambda, only /tmp (os.tmpdir()) is writable
+const TMP_DIR = process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT
+  ? os.tmpdir()
+  : path.join(__dirname, '../tmp');
+
 if (!fs.existsSync(TMP_DIR)) {
   fs.mkdirSync(TMP_DIR, { recursive: true });
 }

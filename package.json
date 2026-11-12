@@ -10,6 +10,8 @@
     "encode-cookies": "node scripts/encode-cookies.js"
   },
   "dependencies": {
+    "@aws-sdk/client-sqs": "^3.1168.0",
+    "@codegenie/serverless-express": "^5.0.0",
     "@google/generative-ai": "^0.21.0",
     "@supabase/supabase-js": "^2.45.0",
     "bullmq": "^6.3.11",
