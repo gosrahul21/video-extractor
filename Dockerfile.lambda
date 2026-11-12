@@ -1,7 +1,7 @@
 FROM public.ecr.aws/lambda/nodejs:22
 
-# Install system dependencies
-RUN dnf install -y python3 curl tar xz ca-certificates && dnf clean all
+# Install system dependencies (curl-minimal is pre-installed in Amazon Linux 2023)
+RUN dnf install -y --allowerasing python3 tar xz ca-certificates && dnf clean all
 
 # Install ffmpeg static binary (amd64)
 RUN curl -sL https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o /tmp/ffmpeg.tar.xz && \
