@@ -16,13 +16,26 @@ app.get('/api/job-status/:id', getJobStatus);
 
 const PORT = process.env.PORT || 3000;
 
-app.get('/health', (req,res)=>{
+app.get('/', (req, res) => {
+  res.send({ status: 'ok', service: 'freakyfit-backend' });
+});
+
+app.get('/health', (req, res) => {
   res.send({
     success: true,
     health: 'ok',
-  })
-})
+  });
+});
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received: closing HTTP server gracefully...');
+  server.close(() => {
+    console.log('HTTP server closed.');
+    process.exit(0);
+  });
+});
+
