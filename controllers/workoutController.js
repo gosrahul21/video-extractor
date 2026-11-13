@@ -42,10 +42,12 @@ import { sqsService } from '../services/sqsService.js';
 import { jobService } from '../services/jobService.js';
 
 export const extractWorkout = async (req, res) => {
-  const { url, user_id } = req.body;
+  const { url } = req.body;
+  // Get verified user_id from Supabase token (fallback to req.body.user_id if not present)
+  const user_id = req.user?.id || req.body.user_id;
 
   if (!url || !user_id) {
-    return res.status(400).json({ error: 'Missing url or user_id in request body' });
+    return res.status(400).json({ error: 'Missing url or user_id in request' });
   }
 
   try {
@@ -85,6 +87,11 @@ export const getJobStatus = async (req, res) => {
       const job = await jobService.getJob(id);
       if (!job) {
         return res.status(404).json({ error: 'Job not found' });
+      }
+
+      // Ensure user can only view their own jobs
+      if (req.user?.id && job.user_id && job.user_id !== req.user.id) {
+        return res.status(403).json({ error: 'Forbidden: You do not have access to this job' });
       }
 
       return res.status(200).json({
