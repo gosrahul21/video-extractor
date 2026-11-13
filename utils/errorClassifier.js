@@ -45,6 +45,16 @@ export const classifyJobError = (err) => {
 
   // 2. Stage-specific classification
   if (stage === 'download') {
+    if (err?.code === 'VIDEO_TOO_LONG' || /exceeds the 2-minute limit|VIDEO_TOO_LONG/i.test(rawMessage)) {
+      return {
+        code: 'VIDEO_TOO_LONG',
+        stage,
+        message: 'This video is longer than 2 minutes. Please choose a video or reel under 2 minutes.',
+        retryable: false,
+        duration: err?.duration || null
+      };
+    }
+
     if (/Private video|Video unavailable|This video is not available|removed/i.test(rawMessage)) {
       return {
         code: 'VIDEO_UNAVAILABLE',

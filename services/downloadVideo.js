@@ -117,7 +117,7 @@ export const downloadVideo = async (url, filePath) => {
       : [])
   ];
 
-  // 2. Fetch metadata to extract thumbnail (and find a working client config)
+  // 2. Fetch metadata to extract thumbnail and validate video duration
   let thumbnailUrl = null;
   let preferredAttempts = attempts;
   for (let i = 0; i < attempts.length; i++) {
@@ -127,12 +127,29 @@ export const downloadVideo = async (url, filePath) => {
         dumpJson: true,
         ...attempt.options
       });
+
+      // Reject videos longer than 2 minutes (120 seconds) before downloading
+      const durationSeconds = metadata?.duration;
+      if (typeof durationSeconds === 'number' && durationSeconds > 120) {
+        const minutes = Math.floor(durationSeconds / 60);
+        const seconds = Math.round(durationSeconds % 60);
+        const formatted = `${minutes}m ${seconds}s`;
+        const err = new Error(`Video duration (${formatted}) exceeds the 2-minute limit.`);
+        err.code = 'VIDEO_TOO_LONG';
+        err.stage = 'download';
+        err.duration = durationSeconds;
+        throw err;
+      }
+
       thumbnailUrl = metadata.thumbnail || null;
       console.log(`[1/4] Extracted thumbnail (${attempt.label}): ${thumbnailUrl}`);
       // Try the winning config first for the actual download
       preferredAttempts = [attempt, ...attempts.filter((_, idx) => idx !== i)];
       break;
     } catch (err) {
+      if (err.code === 'VIDEO_TOO_LONG') {
+        throw err;
+      }
       console.error(`Failed to extract metadata thumbnail (${attempt.label}):`, err.message);
     }
   }
