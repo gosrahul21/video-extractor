@@ -35,3 +35,22 @@ FOR SELECT
 TO authenticated
 USING (auth.uid() = user_id);
 
+-- -------------------------------------------------------------
+-- Config Table for Dynamic Secret Rotation (e.g., YouTube Cookies)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS freakyfit.app_config (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE freakyfit.app_config ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow service role full access on app_config"
+ON freakyfit.app_config
+FOR ALL
+TO service_role
+USING (true)
+WITH CHECK (true);
+
+

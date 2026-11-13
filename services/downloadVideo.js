@@ -3,6 +3,7 @@ import os from 'os';
 import path from 'path';
 import { create } from 'youtube-dl-exec';
 import { fileURLToPath } from 'url';
+import { configService } from './configService.js';
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -42,22 +43,27 @@ export const encodeCookiesFileToBase64 = (
 export const downloadVideo = async (url, filePath) => {
   console.log(`[1/4] Downloading video from ${url}...`);
 
-  // 1. Resolve cookies strictly from environment variable (YOUTUBE_COOKIES)
+  // 1. Resolve cookies: Priority to Supabase dynamic config, fallback to env var
   let effectiveCookiesPath = null;
-  if (process.env.YOUTUBE_COOKIES) {
+  const dynamicCookies = await configService.get('youtube_cookies');
+  const rawCookies = (dynamicCookies || process.env.YOUTUBE_COOKIES || '').trim();
+
+  if (rawCookies) {
     if (!fs.existsSync(TMP_DIR)) {
       fs.mkdirSync(TMP_DIR, { recursive: true });
     }
     const envCookiesPath = path.join(TMP_DIR, 'env_cookies.txt');
     try {
-      const rawCookies = process.env.YOUTUBE_COOKIES.trim();
       const content = (rawCookies.startsWith('# Netscape') || rawCookies.includes('\t'))
         ? rawCookies
         : Buffer.from(rawCookies, 'base64').toString('utf-8');
       fs.writeFileSync(envCookiesPath, content, 'utf-8');
       effectiveCookiesPath = envCookiesPath;
+      if (dynamicCookies) {
+        console.log('[Cookies] Loaded dynamic YouTube cookies from Supabase app_config.');
+      }
     } catch (e) {
-      console.error('Failed to parse YOUTUBE_COOKIES env var:', e.message);
+      console.error('Failed to parse cookies:', e.message);
     }
   }
 
