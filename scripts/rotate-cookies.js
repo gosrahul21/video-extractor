@@ -41,3 +41,4 @@ if (process.argv[1]?.endsWith('rotate-cookies.js')) {
       process.exit(1);
     });
 }
+

@@ -59,3 +59,4 @@ export const configService = {
     return data;
   }
 };
+
