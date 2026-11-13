@@ -56,6 +56,10 @@ jobs:
               --image-uri "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
               --publish
             aws lambda wait function-updated --function-name "$WORKER_LAMBDA_NAME"
+            aws lambda update-function-configuration \
+              --function-name "$WORKER_LAMBDA_NAME" \
+              --timeout 300 \
+              --memory-size 2048 > /dev/null 2>&1 || true
             echo "Lambda update successful!"
           else
             echo "Lambda function '$WORKER_LAMBDA_NAME' does not exist yet."
@@ -76,6 +80,10 @@ jobs:
               --image-uri "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
               --publish
             aws lambda wait function-updated --function-name "$API_LAMBDA_NAME"
+            aws lambda update-function-configuration \
+              --function-name "$API_LAMBDA_NAME" \
+              --timeout 30 \
+              --memory-size 1024 > /dev/null 2>&1 || true
             echo "API Lambda update successful!"
           else
             echo "API Lambda '$API_LAMBDA_NAME' not found (optional). Skipping."
