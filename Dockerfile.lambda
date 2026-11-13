@@ -1,7 +1,7 @@
 FROM public.ecr.aws/lambda/nodejs:22
 
 # Install system dependencies (curl-minimal is pre-installed in Amazon Linux 2023)
-RUN dnf install -y python3 tar xz ca-certificates && dnf clean all
+RUN dnf install -y python3.11 tar xz ca-certificates && dnf clean all
 
 # Install ffmpeg static binary (amd64)
 RUN curl -sL https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o /tmp/ffmpeg.tar.xz && \
@@ -11,8 +11,8 @@ RUN curl -sL https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-stat
     chmod a+rx /usr/local/bin/ffmpeg /usr/local/bin/ffprobe && \
     rm -rf /tmp/ffmpeg*
 
-# Install yt-dlp standalone binary
-RUN curl -sL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
+# Install yt-dlp standalone binary (yt-dlp_linux bundles its own modern Python)
+RUN curl -sL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp
 
 # Set working directory to Lambda task root
