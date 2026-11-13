@@ -63,18 +63,20 @@ jobs:
           fi
 
       - name: Update API Lambda Function (Optional)
-        if: env.API_LAMBDA_NAME != ''
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME || 'freakyfit-backend' }}
           IMAGE_TAG: ${{ github.sha }}
-          API_LAMBDA_NAME: ${{ secrets.API_LAMBDA_NAME }}
+          API_LAMBDA_NAME: ${{ secrets.API_LAMBDA_NAME || 'freakyfit-api' }}
         run: |
-          if [ -n "$API_LAMBDA_NAME" ]; then
-            echo "Deploying to API Lambda: $API_LAMBDA_NAME"
+          if aws lambda get-function --function-name "$API_LAMBDA_NAME" > /dev/null 2>&1; then
+            echo "Updating API Lambda function: $API_LAMBDA_NAME"
             aws lambda update-function-code \
-              --function-name $API_LAMBDA_NAME \
-              --image-uri $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+              --function-name "$API_LAMBDA_NAME" \
+              --image-uri "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
               --publish
-            aws lambda wait function-updated --function-name $API_LAMBDA_NAME
+            aws lambda wait function-updated --function-name "$API_LAMBDA_NAME"
+            echo "API Lambda update successful!"
+          else
+            echo "API Lambda '$API_LAMBDA_NAME' not found (optional). Skipping."
           fi
