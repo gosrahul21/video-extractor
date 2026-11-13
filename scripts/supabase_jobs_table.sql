@@ -53,4 +53,13 @@ TO service_role
 USING (true)
 WITH CHECK (true);
 
+-- -------------------------------------------------------------
+-- Essential Table Privileges (Required for custom PostgreSQL schemas)
+-- -------------------------------------------------------------
+GRANT USAGE ON SCHEMA freakyfit TO postgres, anon, authenticated, service_role;
+GRANT ALL ON TABLE freakyfit.processing_jobs TO service_role;
+GRANT SELECT ON TABLE freakyfit.processing_jobs TO authenticated;
+GRANT ALL ON TABLE freakyfit.app_config TO service_role;
+
+
 
