@@ -43,10 +43,23 @@ export const encodeCookiesFileToBase64 = (
 export const downloadVideo = async (url, filePath) => {
   console.log(`[1/4] Downloading video from ${url}...`);
 
-  // 1. Resolve cookies: Priority to Supabase dynamic config, fallback to env var
+  const isYouTube = /youtube\.com|youtu\.be/i.test(url);
+  const isInstagram = /instagram\.com/i.test(url);
+
+  // 1. Resolve cookies dynamically based on the platform
   let effectiveCookiesPath = null;
-  const dynamicCookies = await configService.get('youtube_cookies');
-  const rawCookies = (dynamicCookies || process.env.YOUTUBE_COOKIES || '').trim();
+  let dynamicCookies = null;
+  let platformLabel = 'General';
+
+  if (isYouTube) {
+    dynamicCookies = await configService.get('youtube_cookies');
+    platformLabel = 'YouTube';
+  } else if (isInstagram) {
+    dynamicCookies = (await configService.get('instagram_cookies')) || (await configService.get('youtube_cookies'));
+    platformLabel = 'Instagram';
+  }
+
+  const rawCookies = (dynamicCookies || (isYouTube ? process.env.YOUTUBE_COOKIES : '') || '').trim();
 
   if (rawCookies) {
     if (!fs.existsSync(TMP_DIR)) {
@@ -59,9 +72,7 @@ export const downloadVideo = async (url, filePath) => {
         : Buffer.from(rawCookies, 'base64').toString('utf-8');
       fs.writeFileSync(envCookiesPath, content, 'utf-8');
       effectiveCookiesPath = envCookiesPath;
-      if (dynamicCookies) {
-        console.log('[Cookies] Loaded dynamic YouTube cookies from Supabase app_config.');
-      }
+      console.log(`[Cookies] Loaded dynamic ${platformLabel} cookies.`);
     } catch (e) {
       console.error('Failed to parse cookies:', e.message);
     }
@@ -73,25 +84,29 @@ export const downloadVideo = async (url, filePath) => {
   };
 
   if (effectiveCookiesPath) {
-    console.log('Using cookies for YouTube authentication...');
+    console.log(`Using cookies for ${platformLabel} authentication...`);
   }
 
   const attempts = [
     {
-      label: effectiveCookiesPath ? 'default clients + cookies' : 'default clients',
+      label: effectiveCookiesPath ? `default clients + ${platformLabel} cookies` : 'default clients',
       options: {
         ...baseOptions,
         ...(effectiveCookiesPath ? { cookies: effectiveCookiesPath } : {})
       }
     },
-    {
-      label: effectiveCookiesPath ? 'tv,web_embedded + cookies' : 'tv,web_embedded',
-      options: {
-        ...baseOptions,
-        extractorArgs: 'youtube:player_client=tv,web_embedded',
-        ...(effectiveCookiesPath ? { cookies: effectiveCookiesPath } : {})
-      }
-    },
+    ...(isYouTube
+      ? [
+          {
+            label: effectiveCookiesPath ? 'tv,web_embedded + cookies' : 'tv,web_embedded',
+            options: {
+              ...baseOptions,
+              extractorArgs: 'youtube:player_client=tv,web_embedded',
+              ...(effectiveCookiesPath ? { cookies: effectiveCookiesPath } : {})
+            }
+          }
+        ]
+      : []),
     ...(effectiveCookiesPath
       ? [
           {
